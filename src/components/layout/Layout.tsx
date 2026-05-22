@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
+import { ImpersonationBanner } from '../ImpersonationBanner';
 import { Bell, Search, LayoutDashboard, CalendarDays, Stethoscope, Package, Users, BarChart3, Settings, Wrench } from 'lucide-react';
 import { surgeryService } from '../../services/surgeryService';
 import { implantService } from '../../services/implantService';
@@ -161,6 +162,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, userProfile }) => {
           </div>
         </header>
 
+        <ImpersonationBanner />
         <div className="p-4 lg:p-8 flex-1 animate-in fade-in slide-in-from-bottom-4 duration-700 overflow-x-hidden">
           {children}
         </div>

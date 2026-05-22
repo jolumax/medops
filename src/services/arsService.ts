@@ -1,14 +1,14 @@
 import { supabase } from '../lib/supabase';
 import { auditService } from './auditService';
+import { getImpersonatedOrgId } from '../utils/impersonation';
 import type { ARS } from '../types/domain';
 
 export const arsService = {
   async getAll(): Promise<ARS[]> {
-    const { data, error } = await supabase
-      .from('ars')
-      .select('*')
-      .eq('is_active', true)
-      .order('name');
+    const orgOverride = getImpersonatedOrgId();
+    let query = supabase.from('ars').select('*').eq('is_active', true).order('name');
+    if (orgOverride) query = query.eq('org_id', orgOverride);
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },

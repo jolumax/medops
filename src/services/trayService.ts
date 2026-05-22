@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { getLocalDateString } from '../utils/dateUtils';
+import { getImpersonatedOrgId } from '../utils/impersonation';
 import type { Tray, TrayWithAvailability, MaintenanceLog } from '../types/domain';
 
 type TrayInput = Partial<Tray> & {
@@ -16,10 +17,10 @@ function cleanTrayPayload(tray: TrayInput): Omit<TrayInput, 'surgery_trays' | 'u
 
 export const trayService = {
   async getAll(): Promise<Tray[]> {
-    const { data, error } = await supabase
-      .from('trays')
-      .select('*, surgery_trays(count)')
-      .order('name');
+    const orgOverride = getImpersonatedOrgId();
+    let query = supabase.from('trays').select('*, surgery_trays(count)').order('name');
+    if (orgOverride) query = query.eq('org_id', orgOverride);
+    const { data, error } = await query;
     if (error) throw error;
     return (data || []).map((t: Tray & { surgery_trays?: Array<{ count: number }> }) => ({
       ...t,

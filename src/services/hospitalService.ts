@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getImpersonatedOrgId } from '../utils/impersonation';
 import type { Hospital } from '../types/domain';
 
 // SECURITY F-09: allowlist the fields a client may write to prevent mass
@@ -20,8 +21,10 @@ function pickAllowed(hospital: Partial<Hospital>): Partial<Hospital> {
 
 export const hospitalService = {
   async getAll(): Promise<Hospital[]> {
-    const { data, error } = await supabase
-      .from('hospitals').select('*').order('name');
+    const orgOverride = getImpersonatedOrgId();
+    let query = supabase.from('hospitals').select('*').order('name');
+    if (orgOverride) query = query.eq('org_id', orgOverride);
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },

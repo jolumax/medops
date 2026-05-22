@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { auditService } from './auditService';
+import { getImpersonatedOrgId } from '../utils/impersonation';
 import type { OrganizationSettings, UserProfile, UserRole } from '../types/domain';
 
 const ALLOWED_USER_FIELDS: Array<keyof UserProfile | 'password'> = [
@@ -40,10 +41,10 @@ export const configService = {
   },
 
   async getUsers(): Promise<UserProfile[]> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('full_name');
+    const orgOverride = getImpersonatedOrgId();
+    let query = supabase.from('profiles').select('*').order('full_name');
+    if (orgOverride) query = query.eq('org_id', orgOverride);
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },

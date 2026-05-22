@@ -73,9 +73,19 @@ serve(async (req) => {
 
     // 3. ELIMINAR USUARIO
     if (action === 'delete') {
-      const { data, error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-      if (error) throw error
-      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      // Intentar eliminar de auth.users; ignorar si el usuario no existe allí
+      // (puede ser un perfil creado manualmente sin cuenta auth).
+      const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      if (authDeleteError && !authDeleteError.message.toLowerCase().includes('not found')) {
+        throw authDeleteError
+      }
+      // Eliminar siempre el perfil de la tabla profiles.
+      const { error: profileDeleteError } = await supabaseAdmin
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
+      if (profileDeleteError) throw profileDeleteError
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     throw new Error('Acción no válida')

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getImpersonatedOrgId } from '../utils/impersonation';
 import type { Surgeon, UserProfile } from '../types/domain';
 
 // SECURITY F-09: allowlist the fields a client may write to prevent mass
@@ -29,11 +30,10 @@ export function withTimeout<T>(promise: PromiseLike<T>, ms = 8000, label = 'Quer
 
 export const surgeonService = {
   async getAll(): Promise<Surgeon[]> {
-    const { data, error } = await withTimeout(
-      supabase.from('surgeons').select('*').order('full_name'),
-      8000,
-      'surgeonService.getAll'
-    );
+    const orgOverride = getImpersonatedOrgId();
+    let baseQuery = supabase.from('surgeons').select('*').order('full_name');
+    if (orgOverride) baseQuery = baseQuery.eq('org_id', orgOverride);
+    const { data, error } = await withTimeout(baseQuery, 8000, 'surgeonService.getAll');
     if (error) throw error;
     return data;
   },

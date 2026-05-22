@@ -7,8 +7,30 @@
 -- =================================================================================
 
 -- ---------------------------------------------------------------------------------
--- 1. FUNCIONES AUXILIARES
---    Se crean primero porque la columna org_id usa get_my_org_id() como DEFAULT.
+-- 1. TABLA organizations (primero, sin dependencias)
+-- ---------------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.organizations (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       text NOT NULL,
+  slug       text UNIQUE,
+  is_active  boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------------
+-- 2. profiles: org_id + is_platform_admin
+--    Deben existir ANTES de crear las funciones (PostgreSQL valida SQL functions).
+-- ---------------------------------------------------------------------------------
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES public.organizations(id);
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS is_platform_admin boolean NOT NULL DEFAULT false;
+
+-- ---------------------------------------------------------------------------------
+-- 3. FUNCIONES AUXILIARES
+--    Ahora profiles.org_id ya existe → la función compila sin error.
 -- ---------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.get_my_org_id()
@@ -21,27 +43,6 @@ RETURNS boolean AS $$
   SELECT coalesce(profiles.is_platform_admin, false)
   FROM public.profiles WHERE profiles.id = auth.uid();
 $$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public;
-
--- ---------------------------------------------------------------------------------
--- 2. TABLA organizations
--- ---------------------------------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS public.organizations (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       text NOT NULL,
-  slug       text UNIQUE,
-  is_active  boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
--- ---------------------------------------------------------------------------------
--- 3. profiles: org_id + is_platform_admin
--- ---------------------------------------------------------------------------------
-
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES public.organizations(id);
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS is_platform_admin boolean NOT NULL DEFAULT false;
 
 -- ---------------------------------------------------------------------------------
 -- 4. org_id en las 12 tablas de datos (nullable primero, para backfill)

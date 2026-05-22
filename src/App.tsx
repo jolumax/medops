@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ToastProvider } from './components/ui/Toast';
+import { ImpersonationProvider } from './contexts/ImpersonationContext';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { Layout } from './components/layout/Layout';
@@ -134,6 +135,7 @@ function App() {
   const isSurgeon = userProfile?.role === 'Cirujano';
 
   return (
+    <ImpersonationProvider>
     <ToastProvider>
       <Router>
         <Routes>
@@ -176,6 +178,7 @@ function App() {
         </Routes>
       </Router>
     </ToastProvider>
+    </ImpersonationProvider>
   );
 }
 

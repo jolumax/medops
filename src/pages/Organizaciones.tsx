@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, Plus, X, Copy, CheckCircle2, Power } from 'lucide-react';
+import { Building2, Plus, X, Copy, CheckCircle2, Power, Wrench } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../utils/cn';
 import { useToast } from '../components/ui/Toast';
+import { useImpersonation } from '../contexts/ImpersonationContext';
 import { organizationService } from '../services/organizationService';
 import type { Organization } from '../types/domain';
 
@@ -16,6 +18,8 @@ const EMPTY_FORM: NewOrgForm = { name: '', slug: '', admin_full_name: '', admin_
 
 export const Organizaciones: React.FC = () => {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { startImpersonation } = useImpersonation();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -164,6 +168,16 @@ export const Organizaciones: React.FC = () => {
               >
                 {org.is_active ? 'Activa' : 'Inactiva'}
               </span>
+              <button
+                onClick={() => {
+                  startImpersonation(org);
+                  navigate('/');
+                }}
+                title="Entrar en modo mantenimiento"
+                className="p-2 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+              >
+                <Wrench size={18} />
+              </button>
               <button
                 onClick={() => handleToggleActive(org)}
                 title={org.is_active ? 'Desactivar' : 'Activar'}

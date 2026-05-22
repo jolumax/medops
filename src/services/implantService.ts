@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { auditService } from './auditService';
 import { getLocalDateString } from '../utils/dateUtils';
+import { getImpersonatedOrgId } from '../utils/impersonation';
 import type { Implant, ImplantLot, SurgeryConsumption } from '../types/domain';
 
 interface ConsumptionInput {
@@ -13,10 +14,13 @@ interface ConsumptionInput {
 
 export const implantService = {
   async getAll(): Promise<Implant[]> {
-    const { data, error } = await supabase
+    const orgOverride = getImpersonatedOrgId();
+    let query = supabase
       .from('implants')
       .select(`*, implant_lots (id, lot_number, expiration_date, current_quantity)`)
       .order('name');
+    if (orgOverride) query = query.eq('org_id', orgOverride);
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },

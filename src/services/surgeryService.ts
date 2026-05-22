@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { auditService } from './auditService';
+import { getImpersonatedOrgId } from '../utils/impersonation';
 import type { Surgery, SurgeryStatus } from '../types/domain';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -58,13 +59,15 @@ export const surgeryService = {
     const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
+      const orgOverride = getImpersonatedOrgId();
       let query = supabase
         .from('surgeries')
         .select(SURGERY_SELECT)
         .order('surgery_date', { ascending: true })
         .abortSignal(controller.signal);
 
-      if (surgeonId) query = query.eq('surgeon_id', surgeonId);
+      if (surgeonId)   query = query.eq('surgeon_id', surgeonId);
+      if (orgOverride) query = query.eq('org_id', orgOverride);
 
       const { data, error } = await query;
       clearTimeout(timeout);
@@ -74,8 +77,10 @@ export const surgeryService = {
       clearTimeout(timeout);
       if ((err as Error).name === 'AbortError') {
         console.warn('surgeryService.getAll: timed out, falling back to REST...');
+        const orgOverride2 = getImpersonatedOrgId();
         const params: Record<string, string> = { order: 'surgery_date.asc' };
-        if (surgeonId) params['surgeon_id'] = `eq.${surgeonId}`;
+        if (surgeonId)    params['surgeon_id'] = `eq.${surgeonId}`;
+        if (orgOverride2) params['org_id']     = `eq.${orgOverride2}`;
         return restGet('surgeries', params, '*');
       }
       throw err;
